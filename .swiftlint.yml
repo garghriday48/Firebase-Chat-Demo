@@ -1,0 +1,17 @@
+# By default, SwiftLint uses a set of sensible default rules you can adjust:
+disabled_rules: # rule identifiers turned on by default to exclude from running
+  - colon
+  - trailing_whitespace
+  - identifier_name
+  - nesting
+  - line_length
+  - no_space_in_method_call
+  - comment_spacing
+  - opening_brace
+  - comma
+  - vertical_whitespace
+  - trailing_newline
+  - multiple_closures_with_trailing_closure
+  
+excluded: # case-sensitive paths to ignore during linting. Takes precedence over `included`
+  - Pods
