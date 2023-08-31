@@ -11,6 +11,7 @@
 		C902CE9B2A9C5C1E00AB9740 /* ChannelsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C902CE9A2A9C5C1E00AB9740 /* ChannelsViewController.swift */; };
 		C902CE9D2A9C5C6700AB9740 /* ChannelTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = C902CE9C2A9C5C6700AB9740 /* ChannelTableViewCell.swift */; };
 		C902CE9F2A9CB5F800AB9740 /* AuthViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C902CE9E2A9CB5F800AB9740 /* AuthViewController.swift */; };
+		C9BD5B152AA0BDC300785A6C /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9BD5B142AA0BDC300785A6C /* Constants.swift */; };
 		C9E58F0C2A9DE06B00927EBC /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = C9E58F0B2A9DE06B00927EBC /* FirebaseAuth */; };
 		C9E58F0E2A9DE06B00927EBC /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = C9E58F0D2A9DE06B00927EBC /* FirebaseFirestore */; };
 		C9E58F102A9DED1900927EBC /* FirebaseAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E58F0F2A9DED1900927EBC /* FirebaseAuthManager.swift */; };
@@ -35,6 +36,7 @@
 		C902CE9A2A9C5C1E00AB9740 /* ChannelsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsViewController.swift; sourceTree = "<group>"; };
 		C902CE9C2A9C5C6700AB9740 /* ChannelTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelTableViewCell.swift; sourceTree = "<group>"; };
 		C902CE9E2A9CB5F800AB9740 /* AuthViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewController.swift; sourceTree = "<group>"; };
+		C9BD5B142AA0BDC300785A6C /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		C9E58F0F2A9DED1900927EBC /* FirebaseAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseAuthManager.swift; sourceTree = "<group>"; };
 		C9E58F122A9DF0EB00927EBC /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		C9F75C212A972E42008B1CD4 /* Firebase_Chat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Firebase_Chat.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -89,6 +91,7 @@
 			isa = PBXGroup;
 			children = (
 				C9E58F122A9DF0EB00927EBC /* Enums.swift */,
+				C9BD5B142AA0BDC300785A6C /* Constants.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -320,6 +323,7 @@
 				C902CE9F2A9CB5F800AB9740 /* AuthViewController.swift in Sources */,
 				C9F75C252A972E42008B1CD4 /* AppDelegate.swift in Sources */,
 				C9E58F102A9DED1900927EBC /* FirebaseAuthManager.swift in Sources */,
+				C9BD5B152AA0BDC300785A6C /* Constants.swift in Sources */,
 				C9F75C272A972E42008B1CD4 /* SceneDelegate.swift in Sources */,
 				C9F75C3F2A973961008B1CD4 /* Users.swift in Sources */,
 			);

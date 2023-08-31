@@ -12,18 +12,19 @@ import MessageKit
 
 class ChatViewController: MessagesViewController,InputBarAccessoryViewDelegate, MessagesDataSource, MessagesLayoutDelegate, MessagesDisplayDelegate {
     
-    var docReference: DocumentReference?
     var messages: [Message] = []
     
     
     var channelData = Channel.initialize
     
+    var viewTitle = ""
     var senderId = ""
     var senderName = ""
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
+        navigationItem.title = self.viewTitle
         navigationItem.largeTitleDisplayMode = .never
         
         maintainPositionOnKeyboardFrameChanged = true
@@ -40,14 +41,10 @@ class ChatViewController: MessagesViewController,InputBarAccessoryViewDelegate, 
        
         
         getAllMessages()
-        // Do any additional setup after loading the view.
-        
-    }
-    override func viewWillAppear(_ animated: Bool) {
         
         //to decode data that is saved in user defaults
         //for key named ' userInfo ' which returns object as Data.
-        if let user = UserDefaults.standard.object(forKey: "userInfo") as? Data,
+        if let user = UserDefaults.standard.object(forKey: Constants.UserDefaultsKeys.userInfo) as? Data,
            let userInfo = try? JSONDecoder().decode(Users.self, from: user) {
             
             //to set senderId and senderName based on which user is signed in
@@ -58,7 +55,6 @@ class ChatViewController: MessagesViewController,InputBarAccessoryViewDelegate, 
                 self.senderId = self.channelData.receiverId
                 self.senderName = self.channelData.receiverName
             }
-            
         }
     }
     
@@ -69,27 +65,36 @@ class ChatViewController: MessagesViewController,InputBarAccessoryViewDelegate, 
     
     /// To get all messages inside a particular chat room.
     func getAllMessages() {
-        guard let docRef = self.docReference else { return }
-        FirebaseManager.shared.loadChat(docReference: docRef) { [weak self] (status, messageArray) in
-            if status {
-                if let msgArray = messageArray{
-                    self?.messages = msgArray
-                    self?.messagesCollectionView.reloadData()
-                    self?.messagesCollectionView.scrollToLastItem(at: .bottom, animated: true)
+        
+        for ref in FirebaseManager.shared.docRefArray where ref.0 == channelData.id {
+            
+            FirebaseManager.shared.loadChat(docReference: ref.1) { [weak self] (status, messageArray) in
+                if status {
+                    if let msgArray = messageArray{
+                        for message in msgArray {
+                            guard let message = Message(dictionary: message) else {continue}
+                            self?.messages.append(message)
+                        }
+                       
+                        self?.messagesCollectionView.reloadData()
+                        self?.messagesCollectionView.scrollToLastItem(at: .bottom, animated: true)
+                    }
                 }
             }
         }
+        
     }
     
     
     /// To save message in database when user send the message
     /// - Parameter message: as ' Message ' to be saved in databse
     func saveMessage(message: Message) {
-        guard let docRef = self.docReference else { return }
-        FirebaseManager.shared.saveMessage(message, docReference: docRef) { [weak self] (status) in
-            if status {
-               self?.messagesCollectionView.reloadData()
-               self?.messagesCollectionView.scrollToLastItem(at: .bottom, animated: true)
+        for ref in FirebaseManager.shared.docRefArray where ref.0 == channelData.id{
+            FirebaseManager.shared.saveMessage(message.dictionary, docReference: ref.1) { [weak self] (status) in
+                if status {
+                    self?.messagesCollectionView.reloadData()
+                    self?.messagesCollectionView.scrollToLastItem(at: .bottom, animated: true)
+                }
             }
         }
     }

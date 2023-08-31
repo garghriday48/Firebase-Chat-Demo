@@ -26,11 +26,25 @@ class AuthViewController: UIViewController {
     var authType = AuthType.signUp
     var onScreenType = AuthType.signUp
     
+    var usersArray: [Users] = []
+    var signInName = ""
+    var signInCompany = ""
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         authType = .signUp
         onScreenType = .signUp
-        changeBtn.setTitle("Sign In", for: .normal)
+        changeBtn.setTitle(Constants.Heading.signIn, for: .normal)
+        FirebaseManager.shared.getUsers { [weak self] (status, users) in
+            if status {
+                guard let users = users else { return }
+                for user in users {
+                    guard let userData = Users(dictionary: user) else { continue }
+                    self?.usersArray.append(userData)
+                }
+                
+            }
+        }
         // Do any additional setup after loading the view.
     }
     
@@ -42,32 +56,32 @@ class AuthViewController: UIViewController {
             switch onScreenType {
                 
             case .signUp:
-                Auth.auth().createUser(withEmail: email, password: password) {(authResult, error) in
+                Auth.auth().createUser(withEmail: email, password: password) {(authResult, _) in
                     
                     if let user = authResult?.user {
                        
                         let userData = Users(id: user.uid, name: self.nameTextfield.text ?? "", company: self.companyTextField.text ?? "", email: self.emailTextField.text ?? "", password: self.passwordTextField.text ?? "")
                         
                         
-                        UserDefaults.standard.set(true, forKey: "isUserSignedUp")
+                        UserDefaults.standard.set(true, forKey: Constants.UserDefaultsKeys.isUserSignedUp)
                         
                         if let contentData = try? JSONEncoder().encode(userData) {
-                            UserDefaults.standard.set(contentData, forKey: "userInfo")
+                            UserDefaults.standard.set(contentData, forKey: Constants.UserDefaultsKeys.userInfo)
                         }
                         
                         
-                        FirebaseManager.shared.addUsers(data: userData) { (status) in
-                            let isUserSignedIn = UserDefaults.standard.bool(forKey: "isUserSignedUp")
+                        FirebaseManager.shared.addUsers(userId: userData.id, data: userData.dictionary) { (status) in
+                            let isUserSignedIn = UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.isUserSignedUp)
                             
                             if status && isUserSignedIn {
-                                let ChannelVC = self.storyboard?.instantiateViewController(withIdentifier: "ChannelsVC") as! ChannelsViewController
-                                self.navigationController?.pushViewController(ChannelVC, animated: true)
+                                let ChannelVC = self.storyboard?.instantiateViewController(withIdentifier: Constants.Identifier.channelVc) as? ChannelsViewController
+                                self.navigationController?.pushViewController(ChannelVC!, animated: true)
                             }
                         }
                     } else {
                         message = "User already created\nSign in to continue."
                         let alertController = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-                        alertController.addAction(UIAlertAction(title: "OK", style: .cancel, handler: nil))
+                        alertController.addAction(UIAlertAction(title: Constants.Buttons.ok, style: .cancel, handler: nil))
                     
                         self.present(alertController, animated: true, completion: nil)
                     }
@@ -78,23 +92,27 @@ class AuthViewController: UIViewController {
                 Auth.auth().signIn(withEmail: email, password: password) { (result, error) in
                     
                     if error != nil {
-                       message = "There was an error."
+                        message = "There was an error."
                         let alertController = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-                        alertController.addAction(UIAlertAction(title: "OK", style: .cancel, handler: nil))
-                
+                        alertController.addAction(UIAlertAction(title: Constants.Buttons.ok, style: .cancel, handler: nil))
+                        
                         self.present(alertController, animated: true, completion: nil)
                     } else {
                         guard let user = result?.user else { return }
-                        let userData = Users(id: user.uid, name: self.nameTextfield.text ?? "", company: self.companyTextField.text ?? "", email: self.emailTextField.text ?? "", password: self.passwordTextField.text ?? "")
-                        
-                        
-                        UserDefaults.standard.set(true, forKey: "isUserSignedUp")
-                        
-                        if let contentData = try? JSONEncoder().encode(userData) {
-                            UserDefaults.standard.set(contentData, forKey: "userInfo")
+                        if self.usersArray.contains(where: { user in
+                            self.signInName = user.name
+                            self.signInCompany = user.company
+                            return user.email == self.emailTextField.text
+                        }){
+                            let userData = Users(id: user.uid, name: self.signInName, company: self.signInCompany, email: self.emailTextField.text ?? "", password: self.passwordTextField.text ?? "")
+                            
+                            
+                            UserDefaults.standard.set(true, forKey: Constants.UserDefaultsKeys.isUserSignedUp)
+                            
+                            if let contentData = try? JSONEncoder().encode(userData) {  UserDefaults.standard.set(contentData, forKey: Constants.UserDefaultsKeys.userInfo) }
+                            let ChannelVC = self.storyboard?.instantiateViewController(withIdentifier: Constants.Identifier.channelVc) as? ChannelsViewController
+                            self.navigationController?.pushViewController(ChannelVC!, animated: true)
                         }
-                        let ChannelVC = self.storyboard?.instantiateViewController(withIdentifier: "ChannelsVC") as! ChannelsViewController
-                        self.navigationController?.pushViewController(ChannelVC, animated: true)
                     }
                 }
             }
@@ -112,8 +130,8 @@ class AuthViewController: UIViewController {
             companyLabel.isHidden = false
             companyTextField.isHidden = false
             
-            headingLabel.text = "Sign Up"
-            changeBtn.setTitle("Sign In", for: .normal)
+            headingLabel.text = Constants.Heading.signUp
+            changeBtn.setTitle(Constants.Heading.signIn, for: .normal)
             onScreenType = .signUp
             authType = .signIn
             
@@ -124,8 +142,8 @@ class AuthViewController: UIViewController {
             companyLabel.isHidden = true
             companyTextField.isHidden = true
             
-            headingLabel.text = "Sign In"
-            changeBtn.setTitle("Sign Up", for: .normal)
+            headingLabel.text = Constants.Heading.signIn
+            changeBtn.setTitle(Constants.Heading.signUp, for: .normal)
             onScreenType = .signIn
             authType = .signUp
         }

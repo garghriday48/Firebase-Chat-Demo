@@ -16,19 +16,18 @@ class FirebaseAuthManager {
     }
     
     func createUser(email: String, password: String, completion: @escaping (_ success: Bool) -> Void) {
-            Auth.auth().createUser(withEmail: email, password: password) {(authResult, error) in
+            Auth.auth().createUser(withEmail: email, password: password) {(authResult, _) in
                 if let user = authResult?.user {
                     print(user)
                     completion(true)
-                }
-                else {
+                } else {
                     completion(false)
                 }
             }
         }
  
     func signIn(email: String, pass: String, completion: @escaping (_ success: Bool) -> Void) {
-        Auth.auth().signIn(withEmail: email, password: pass) { (result, error) in
+        Auth.auth().signIn(withEmail: email, password: pass) { (_, error) in
             if error != nil {
                 completion(false)
             } else {

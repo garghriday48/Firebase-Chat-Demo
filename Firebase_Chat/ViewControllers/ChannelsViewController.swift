@@ -15,7 +15,10 @@ class ChannelsViewController: UIViewController {
     
     var usersArray: [Users] = []
     var userId = ""
-
+    
+    var channelData = Channel.initialize
+    var allChannels: [Channel] = []
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -23,12 +26,15 @@ class ChannelsViewController: UIViewController {
         FirebaseManager.shared.getUsers { [weak self] (status, users) in
             if status {
                 guard let users = users else { return }
-                self?.usersArray = users
+                for user in users {
+                    guard let userData = Users(dictionary: user) else { continue }
+                    self?.usersArray.append(userData)
+                }
             }
         }
                  
                  
-       let rightBarButtonItem = UIBarButtonItem(title:  "Log Out", style: .plain, target: self, action: #selector(logOut))
+        let rightBarButtonItem = UIBarButtonItem(title:  Constants.Heading.logOut, style: .plain, target: self, action: #selector(logOut))
        let rightButton2 = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addChannel))
          
        navigationItem.rightBarButtonItems = [rightBarButtonItem,rightButton2]
@@ -37,7 +43,7 @@ class ChannelsViewController: UIViewController {
         rightBarButtonItem.tintColor = .red
     }
     override func viewWillAppear(_ animated: Bool) {
-        if let user = UserDefaults.standard.object(forKey: "userInfo") as? Data,
+        if let user = UserDefaults.standard.object(forKey: Constants.UserDefaultsKeys.userInfo) as? Data,
            let userInfo = try? JSONDecoder().decode(Users.self, from: user) {
             self.userId = userInfo.id
         }
@@ -45,9 +51,15 @@ class ChannelsViewController: UIViewController {
     
     func getAllChannels() {
         
-        FirebaseManager.shared.loadChannels { (status) in
+        FirebaseManager.shared.loadChannels { (status, channelArray)  in
             if status {
-                self.channelsTableView.reloadData()
+                if let chlArray = channelArray{
+                    for channel in chlArray {
+                        guard let channel = Channel(dictionary: channel) else { continue }
+                        self.allChannels.append(channel)
+                    }
+                    self.channelsTableView.reloadData()
+                }
             } else {
                 print("No Channels found")
             }
@@ -57,11 +69,10 @@ class ChannelsViewController: UIViewController {
     @objc func logOut() {
         do{
             try Auth.auth().signOut()
-            FirebaseManager.shared.channels = []
-            UserDefaults.standard.set(false, forKey: "isUserSignedUp")
+            UserDefaults.standard.set(false, forKey: Constants.UserDefaultsKeys.isUserSignedUp)
             
-            let storyboard = UIStoryboard(name: "Main", bundle: nil)
-            UIApplication.shared.keyWindow?.rootViewController = UINavigationController(rootViewController: storyboard.instantiateViewController(withIdentifier: "AuthVC") as! AuthViewController)
+            let storyboard = UIStoryboard(name: Constants.Identifier.mainStoryboard, bundle: nil)
+            UIApplication.shared.keyWindow?.rootViewController = UINavigationController(rootViewController: storyboard.instantiateViewController(withIdentifier: Constants.Identifier.authVc) as? AuthViewController ?? UIViewController())
             
         } catch {
             print("not able to logout")
@@ -71,17 +82,17 @@ class ChannelsViewController: UIViewController {
     }
 
     @objc func addChannel() { 
-        let alertController = UIAlertController(title: "Add Chat", message: "", preferredStyle: .alert)
+        let alertController = UIAlertController(title: Constants.Heading.addChat, message: "", preferredStyle: .alert)
         
         alertController.addTextField { (textField : UITextField!) -> Void in
-            textField.placeholder = "Enter Name"
+            textField.placeholder = Constants.Placeholder.enterName
         }
         alertController.addTextField { (textField : UITextField!) -> Void in
-            textField.placeholder = "Enter Company"
+            textField.placeholder = Constants.Placeholder.enterCompany
         }
         
 
-        let saveAction = UIAlertAction(title: "Save", style: .default, handler: { alert -> Void in
+        let saveAction = UIAlertAction(title: Constants.Buttons.save, style: .default, handler: { _ -> Void in
             let firstTextField = alertController.textFields![0] as UITextField
             let secondTextField = alertController.textFields![1] as UITextField
             
@@ -91,23 +102,24 @@ class ChannelsViewController: UIViewController {
                 receiverId = user.id
                 return firstTextField.text == user.name
             }) {
-                if let user = UserDefaults.standard.object(forKey: "userInfo") as? Data,
+                if let user = UserDefaults.standard.object(forKey: Constants.UserDefaultsKeys.userInfo) as? Data,
                    let userInfo = try? JSONDecoder().decode(Users.self, from: user) {
                     
-                    //guard let userInfo = UserDefaults.standard.object(forKey: "userInfo") as? Users else { return }
-                    FirebaseManager.shared.createNewChannel(channelData: Channel(id: UUID().uuidString, senderId: userInfo.id, receiverId: receiverId, senderName: userInfo.name, receiverName: firstTextField.text ?? "", senderCompany: userInfo.company, receiverCompany: secondTextField.text ?? "", createdAt: Timestamp(date: Date())), completion: { (status) in
+                    self.channelData = Channel(id: UUID().uuidString, senderId: userInfo.id, receiverId: receiverId, senderName: userInfo.name, receiverName: firstTextField.text ?? "", senderCompany: userInfo.company, receiverCompany: secondTextField.text ?? "", createdAt: Timestamp(date: Date()))
+                    
+                    FirebaseManager.shared.createNewChannel(channelId: self.channelData.id, channelData: self.channelData.dictionary, completion: { (status) in
                         if status {  self.getAllChannels() }
                     })
                     
                 }
             } else {
-                self.showAlert(alertTitle: "User Not Found", alertMsg: "Both users need to sign in before chatting.", btnTitle: "Okay")
+                self.showAlert(alertTitle: Constants.Heading.userNotFound , alertMsg: Constants.Alerts.needToSignInSignUp, btnTitle: Constants.Buttons.ok)
             }
                 
         
         })
 
-        let cancelAction = UIAlertAction(title: "Cancel", style: .default, handler: nil )
+        let cancelAction = UIAlertAction(title: Constants.Buttons.cancel, style: .default, handler: nil )
 
     
         alertController.addAction(saveAction)
@@ -151,24 +163,26 @@ class ChannelsViewController: UIViewController {
 
 extension ChannelsViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return FirebaseManager.shared.channels.count
+        return allChannels.count
     }
 
     //to display name and company based on condition
     //which user is signed in currently
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let channelCell = self.channelsTableView.dequeueReusableCell(withIdentifier: "ChannelCell", for: indexPath) as! ChannelTableViewCell
-        channelCell.nameLabel.text = (self.userId == FirebaseManager.shared.channels[indexPath.row].senderId ? FirebaseManager.shared.channels[indexPath.row].receiverName : FirebaseManager.shared.channels[indexPath.row].senderName)
-        channelCell.companyLabel.text = self.userId == FirebaseManager.shared.channels[indexPath.row].senderId ? FirebaseManager.shared.channels[indexPath.row].receiverCompany : FirebaseManager.shared.channels[indexPath.row].senderCompany
+        let channelCell = self.channelsTableView.dequeueReusableCell(withIdentifier: Constants.Identifier.channelCell, for: indexPath) as? ChannelTableViewCell
+        guard let channelCell = channelCell else {return UITableViewCell()}
+        channelCell.nameLabel.text = (self.userId == allChannels[indexPath.row].senderId ? allChannels[indexPath.row].receiverName : allChannels[indexPath.row].senderName)
+        channelCell.companyLabel.text = self.userId == allChannels[indexPath.row].senderId ? allChannels[indexPath.row].receiverCompany : allChannels[indexPath.row].senderCompany
         
         return channelCell
     }
     
     //to navigate to chat room when tapped on any cell
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let chatVC = self.storyboard?.instantiateViewController(withIdentifier: "ChatVC") as! ChatViewController
-        chatVC.channelData = FirebaseManager.shared.channels[indexPath.row]
-        chatVC.docReference = FirebaseManager.shared.docRefArray[indexPath.row].1
+        let chatVC = self.storyboard?.instantiateViewController(withIdentifier: Constants.Identifier.chatVc) as? ChatViewController
+        guard let chatVC = chatVC else {return}
+        chatVC.channelData = allChannels[indexPath.row]
+        chatVC.viewTitle = (self.userId == allChannels[indexPath.row].senderId ? allChannels[indexPath.row].receiverName : allChannels[indexPath.row].senderName)
         
         self.navigationController?.pushViewController(chatVC, animated: true)
     }

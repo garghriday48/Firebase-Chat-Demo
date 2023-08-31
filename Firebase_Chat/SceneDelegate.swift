@@ -23,11 +23,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         
         if UserDefaults.standard.bool(forKey: "isUserSignedUp") {
-            let navController = UINavigationController(rootViewController: storyboard.instantiateViewController(withIdentifier: "ChannelsVC") as! ChannelsViewController)
+            let navController = UINavigationController(rootViewController: (storyboard.instantiateViewController(withIdentifier: "ChannelsVC") as? ChannelsViewController ?? UIViewController()))
+           //guard let navController = navController else {return}
             window.rootViewController = navController
             // Integrate navigation controller programmatically if you want
         } else {
-            let navController = UINavigationController(rootViewController: storyboard.instantiateViewController(withIdentifier: "AuthVC") as! AuthViewController)
+            let navController = UINavigationController(rootViewController: storyboard.instantiateViewController(withIdentifier: "AuthVC") as? AuthViewController ?? UIViewController())
+            
             window.rootViewController = navController
             window.makeKeyAndVisible()
         }
