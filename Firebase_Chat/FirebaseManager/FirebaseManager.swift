@@ -18,16 +18,14 @@ class FirebaseManager {
     
     var docReference: DocumentReference?
     var lastQuerySnapshot: DocumentSnapshot?
-    //var messages = [Message]()
-    var channels = [Channel]()
     
     var docRefArray = [(String,DocumentReference)]()
     
     let db = Firestore.firestore()
     
     
-    func addUsers(data: Users, completion: @escaping (Bool) -> ()) {
-        db.collection("Users").document("\(data.id)").setData(data.dictionary) { err in
+    func addUsers(userId:String, data: [String:Any], completion: @escaping (Bool) -> Void) {
+        db.collection(Constants.Firebase.userCollection).document(userId).setData(data) { err in
                 if let err = err {
                     print("Error adding document: \(err)")
                     completion(false)
@@ -38,16 +36,15 @@ class FirebaseManager {
         }
     }
     
-    func getUsers(completion: @escaping (Bool, [Users]?) -> ()){
-        var users = [Users]()
-        db.collection("Users").getDocuments() { (querySnapshot, err) in
+    func getUsers(completion: @escaping (Bool, [[String:Any]]?) -> Void){
+        var users = [[String:Any]]()
+        db.collection(Constants.Firebase.userCollection).getDocuments { (querySnapshot, err) in
             if let err = err {
                 print("Error getting Users: \(err)")
                 completion(false, nil)
             } else {
                 for document in querySnapshot!.documents {
-                    let user = Users(dictionary: document.data())
-                    guard let user = user else { return }
+                    let user = document.data()
                     users.append(user)
                 }
                 completion(true, users)
@@ -55,11 +52,10 @@ class FirebaseManager {
         }
     }
     
-    func createNewChannel(channelData: Channel, completion: @escaping (Bool) -> ()) {
-        let data = channelData.dictionary
+    func createNewChannel(channelId: String, channelData: [String:Any], completion: @escaping (Bool) -> Void) {
         
-        let db = Firestore.firestore().collection("Chats")
-        db.addDocument(data: data){ (error) in
+        let db = Firestore.firestore().collection(Constants.Firebase.chatCollection)
+        db.document(channelId).setData(channelData){ (error) in
             if let error = error {
                 print("Unable to create chat! \(error)")
                 completion(false)
@@ -69,101 +65,100 @@ class FirebaseManager {
         }
     }
     
-    func loadChannels(completion: @escaping (Bool) -> ()) {
+    func loadChannels(completion: @escaping (Bool, [[String:Any]]?) -> Void) {
+        
+        var channelData = [[String:Any]]()
         var userId = ""
-        if let user = UserDefaults.standard.object(forKey: "userInfo") as? Data,
+        
+        if let user = UserDefaults.standard.object(forKey: Constants.UserDefaultsKeys.userInfo) as? Data,
            let userInfo = try? JSONDecoder().decode(Users.self, from: user) {
             userId = userInfo.id
         }
         //Fetch all the chats which has current user in it
-        let db = Firestore.firestore().collection("Chats")
+        let db = Firestore.firestore().collection(Constants.Firebase.chatCollection)
             .order(by: "createdAt", descending: true)
             .whereFilter(Filter.orFilter([
                             Filter.whereField("senderId", isEqualTo: userId),
                             Filter.whereField("receiverId", isEqualTo: userId)
                         ]))
-        completion(false)
+        completion(false, nil)
         db.getDocuments { (chatQuerySnap, error) in
             if let error = error {
                 print("Error: \(error)")
-                completion(false)
+                completion(false, nil)
             } else {
                 //Count the no. of documents returned
                 guard let queryCount = chatQuerySnap?.documents.count else { return }
                 
-//                if queryCount == 0 {
-//                    //If documents count is zero that means there is no chat available and we need to create a new instance
-//                    self.createNewChannel(channelData: channelData)
-//
-//                } else
+                self.docRefArray = []
+                for doc in chatQuerySnap!.documents {
+                    self.docRefArray.append((doc.documentID, doc.reference))
+                }
+                
                 if queryCount >= 1 {
-                    if self.channels.count > 0 {
-                        guard let lastDoc = chatQuerySnap!.documents.first?.data() else {return}
-                        guard let channel = Channel(dictionary: lastDoc) else { return }
-                        self.channels.append(channel)
+                    if channelData.count > 0 {
+                        guard let firstChannelData = chatQuerySnap!.documents.first?.data() else {return}
+                        channelData.insert(firstChannelData , at: 0)
+                        
+                        completion(true, [firstChannelData])
                     } else {
                     //Chat(s) found for currentUser
                         for doc in chatQuerySnap!.documents {
-                            let channel = Channel(dictionary: doc.data())
-                            guard let channel = channel else { return }
-                            self.channels.insert(channel, at: 0)
+                            let data = doc.data()
+                            channelData.insert(data, at: 0)
                             // to get the reference of document to directly add messages to it.
                             //                            self.docReference = doc.reference
-                            self.docRefArray.append((doc.documentID, doc.reference))
+                            //self.docRefArray.append((doc.documentID, doc.reference))
                         }
+                        completion(true, channelData)
                     } //end of for
-                    completion(true)
                 } else {
-                    completion(false)
+                    completion(false, nil)
                     print("Let's hope this error never prints!")
                 }
             }
         }
     }
     
-    func loadChat(docReference: DocumentReference, completion: @escaping (Bool, [Message]?) -> ()){
+    func loadChat(docReference: DocumentReference, completion: @escaping (Bool, [[String:Any]]?) -> Void){
         //fetch it's thread collection
-        var messages = [Message]()
+        var chatData = [[String:Any]]()
         
-        let query = docReference.collection("thread")
+        //query through which access data related to particular chat
+        let query = docReference.collection(Constants.Firebase.msgCollection)
             .order(by: "created", descending: false)
-            
-//                            if let lastQuerySnapshot = self.lastQuerySnapshot {
-//                                query?.start(afterDocument: lastQuerySnapshot)
-//                            } else {
-//                                self.messages.removeAll()
-//                            }
+
+        //Snapshot listener to listen for any changes that happens in particular collection
+        //as given by above defined query.
         query.addSnapshotListener({ (threadQuery, error) in
-                
-               // self.lastQuerySnapshot = threadQuery?.documents.last
-            
+
                 if let error = error {
                     print("Error: \(error)")
                     completion(false, nil)
                 } else {
-                    if messages.count > 0 {
-                        let msg = Message(dictionary: (threadQuery!.documents.last?.data())!)
-                        messages.append(msg!)
+                    //Check if its first time - all data is send,
+                    // else - only the added data is send
+                    //so that all the data is not reloaded again whenever data is sent to database.
+                    if chatData.count > 0 {
+                        guard let lastElementData = threadQuery!.documents.last?.data() else { return }
+                        chatData.append(lastElementData)
+                        completion(true, [lastElementData])
                     } else {
                         for message in threadQuery!.documents {
-                            let msg = Message(dictionary: message.data())
-                            guard let msg = msg else { return }
-                            messages.append(msg)
-                            print("Data: \(msg.content)")
-                            print("\(threadQuery!.documents.count)")
+                            let data = message.data()
+                            chatData.append(data)
+                            print("Data: \(data)")
                         }
+                        completion(true, chatData)
                     }
                     
                 }
-                completion(true, messages)
             })
     }
     
-    func saveMessage(_ message: Message, docReference: DocumentReference, completion: @escaping (Bool) -> ()) {
-        //Preparing the data as per our firestore collection
-        let data: [String: Any] = message.dictionary
+    func saveMessage(_ message: [String:Any], docReference: DocumentReference, completion: @escaping (Bool) -> Void) {
         //Writing it to the thread using the saved document reference we saved in load chat function
-        docReference.collection("thread").addDocument(data: data, completion: { (error) in
+        docReference.collection(Constants.Firebase.msgCollection).addDocument(data: message, completion: { (error) in
             if let error = error {
                 print("Error Sending message: \(error)")
                 completion(false)
