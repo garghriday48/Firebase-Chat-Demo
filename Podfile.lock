@@ -4,19 +4,23 @@ PODS:
   - InputBarAccessoryView/Core (5.5.0)
   - MessageKit (3.8.0):
     - InputBarAccessoryView (~> 5.5.0)
+  - SwiftLint (0.52.2)
 
 DEPENDENCIES:
   - MessageKit
+  - SwiftLint
 
 SPEC REPOS:
   trunk:
     - InputBarAccessoryView
     - MessageKit
+    - SwiftLint
 
 SPEC CHECKSUMS:
   InputBarAccessoryView: 1d7b0a672b36e370f01f264b3907ef39d03328e3
   MessageKit: a1ba0c69ebead94029867853eb44dd05b9b3f453
+  SwiftLint: 1ac76dac888ca05cb0cf24d0c85887ec1209961d
 
-PODFILE CHECKSUM: fa2728afbfc1da0439c679c442cb07aec99f2479
+PODFILE CHECKSUM: c624474a2dd38c115ea0824b79cf85817eb6bde1
 
 COCOAPODS: 1.12.0

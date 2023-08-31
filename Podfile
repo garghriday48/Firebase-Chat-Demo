@@ -7,5 +7,6 @@ target 'Firebase_Chat' do
 
   # Pods for Firebase_Chat
   pod 'MessageKit'
+  pod 'SwiftLint'
 
 end

@@ -20,7 +20,8 @@ class FirebaseAuthManager {
                 if let user = authResult?.user {
                     print(user)
                     completion(true)
-                } else {
+                }
+                else {
                     completion(false)
                 }
             }

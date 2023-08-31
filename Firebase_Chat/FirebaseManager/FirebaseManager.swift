@@ -25,78 +25,6 @@ class FirebaseManager {
     
     let db = Firestore.firestore()
     
-//    func getData(array: inout [People]) -> [People] {
-//
-//        db.collection("people").getDocuments { (querySnapshot, error) in
-//            if let error = error {
-//                print("Error getting documents: \(error)")
-//            } else {
-//                for document in querySnapshot!.documents {
-//                    if let name = document.data()["name"] as? String , let country = document.data()["country"] as? String {
-//                        array.append(People(name: name, country: country))
-//                    }
-//                }
-//            }
-//        }
-//        return array
-//    }
-    
-    func getData(completion: @escaping (Bool, [People]) -> ()){
-        var tasks = [People]()
-        db.collection("people").getDocuments() { (querySnapshot, err) in
-            if let err = err {
-                print("Error getting documents: \(err)")
-                completion(false, tasks)
-            } else {
-                for document in querySnapshot!.documents {
-                    
-                    if let name = document.data()["name"] as? String , let country = document.data()["country"] as? String {
-                        tasks.append(People(id: document.documentID, name: name, country: country))
-                    }
-                }
-                print(tasks)
-                completion(true, tasks)
-            }
-        }
-    }
-    
-    func addToData(data: People, completion: @escaping (Bool) -> ()) {
-            var ref: DocumentReference? = nil
-            ref = db.collection("people").addDocument(data: [
-                "name": data.name,
-                "country": data.country
-                ]) { err in
-                    if let err = err {
-                        print("Error adding document: \(err)")
-                        completion(false)
-                    } else {
-                        print("Document added with ID: \(ref!.documentID)")
-                        completion(true)
-                    }
-            }
-        }
-    
-    func deleteFromData(id: String, completion: @escaping (Bool) -> ()){
-        db.collection("people").document(id).delete() { err in
-            if let err = err {
-                print("Error removing document: \(err)")
-                completion(false)
-            } else {
-                completion(true)
-            }
-        }
-    }
-    
-    func updateData(id: String, data: People , completion: @escaping (Bool) -> ()){
-        db.collection("people").document(id).updateData(["name": data.name, "country": data.country]) { err in
-            if let err = err {
-                print("Error removing document: \(err)")
-                completion(false)
-            } else {
-                completion(true)
-            }
-        }
-    }
     
     func addUsers(data: Users, completion: @escaping (Bool) -> ()) {
         db.collection("Users").document("\(data.id)").setData(data.dictionary) { err in
@@ -154,7 +82,6 @@ class FirebaseManager {
                             Filter.whereField("senderId", isEqualTo: userId),
                             Filter.whereField("receiverId", isEqualTo: userId)
                         ]))
-//
         completion(false)
         db.getDocuments { (chatQuerySnap, error) in
             if let error = error {
